@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { KeyRound, Check, X, ShieldCheck, AlertCircle, Eye, EyeOff, Database, Sparkles, RefreshCw } from 'lucide-react';
+import { KeyRound, Check, X, ShieldCheck, AlertCircle, Database, Lock, RefreshCw } from 'lucide-react';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { getOwnerPin, setOwnerPin, verifyOwnerPin, fetchOwnerPinFromDb } from './securityService';
 
@@ -14,12 +14,9 @@ export function ChangePinModal({ isOpen, onClose, onSuccess, supabase }: Props) 
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
-  const [showPins, setShowPins] = useState(false);
-  const [showDbRecovery, setShowDbRecovery] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [savedPinInDb, setSavedPinInDb] = useState<string>('');
 
   useEffect(() => {
     if (isOpen) {
@@ -28,12 +25,9 @@ export function ChangePinModal({ isOpen, onClose, onSuccess, supabase }: Props) 
       setCurrentPin('');
       setNewPin('');
       setConfirmPin('');
-      setShowDbRecovery(false);
 
-      // Fetch live PIN from Supabase / memory
-      void fetchOwnerPinFromDb(supabase).then((pin) => {
-        setSavedPinInDb(pin || getOwnerPin());
-      });
+      // Refresh live PIN from Supabase silently
+      void fetchOwnerPinFromDb(supabase);
     }
   }, [isOpen, supabase]);
 
@@ -48,10 +42,10 @@ export function ChangePinModal({ isOpen, onClose, onSuccess, supabase }: Props) 
     const cleanNew = newPin.trim();
     const cleanConfirm = confirmPin.trim();
 
-    // Verify current PIN or allow if recovering/verifying against DB
-    const actualCurrentPin = savedPinInDb || getOwnerPin();
+    // Verify current PIN strictly without ever exposing it
+    const actualCurrentPin = getOwnerPin();
     if (cleanCurrent !== actualCurrentPin && !verifyOwnerPin(cleanCurrent)) {
-      setErrorMsg('Current PIN / Password is incorrect. Click "Forgot Saved PIN?" below if needed.');
+      setErrorMsg('Current PIN / Password is incorrect.');
       return;
     }
 
@@ -69,8 +63,7 @@ export function ChangePinModal({ isOpen, onClose, onSuccess, supabase }: Props) 
     try {
       const saved = await setOwnerPin(cleanNew, supabase);
       if (saved) {
-        setSavedPinInDb(cleanNew);
-        setSuccessMsg('Security PIN / Password saved to Database & Browser!');
+        setSuccessMsg('Security PIN / Password updated and saved to Database!');
         setTimeout(() => {
           onSuccess();
           onClose();
@@ -84,11 +77,6 @@ export function ChangePinModal({ isOpen, onClose, onSuccess, supabase }: Props) 
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleQuickFillCurrent = () => {
-    const pin = savedPinInDb || getOwnerPin();
-    setCurrentPin(pin);
   };
 
   return (
@@ -114,7 +102,7 @@ export function ChangePinModal({ isOpen, onClose, onSuccess, supabase }: Props) 
           borderRadius: '24px',
           padding: '28px 24px',
           width: '100%',
-          maxWidth: '440px',
+          maxWidth: '420px',
           boxShadow: '0 25px 60px rgba(0,0,0,0.7), 0 0 30px rgba(0, 255, 136, 0.15)',
           position: 'relative',
         }}
@@ -163,7 +151,7 @@ export function ChangePinModal({ isOpen, onClose, onSuccess, supabase }: Props) 
             Change Owner PIN / Password
           </h3>
           <p style={{ color: '#94a3b8', fontSize: '12.5px', margin: 0 }}>
-            Updates your security PIN and syncs automatically with the Supabase database.
+            Enter your current and new credentials. Saved securely in Supabase database.
           </p>
         </div>
 
@@ -177,86 +165,16 @@ export function ChangePinModal({ isOpen, onClose, onSuccess, supabase }: Props) 
             marginBottom: '14px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            gap: '8px',
             fontSize: '11.5px',
             color: '#a7f3d0',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Database size={14} style={{ color: '#34d399' }} />
-            <span>
-              Database Table: <code>public.app_security</code>
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowDbRecovery(!showDbRecovery)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#38bdf8',
-              textDecoration: 'underline',
-              cursor: 'pointer',
-              fontSize: '11px',
-              padding: 0,
-            }}
-          >
-            {showDbRecovery ? 'Hide saved PIN' : 'Forgot / View Saved PIN'}
-          </button>
+          <Database size={14} style={{ color: '#34d399', flexShrink: 0 }} />
+          <span>
+            Database Storage: <code>public.app_security</code> (Masked & Protected)
+          </span>
         </div>
-
-        {/* Recovery / View Stored Password Drawer */}
-        {showDbRecovery && (
-          <div
-            style={{
-              background: 'rgba(15, 23, 42, 0.85)',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
-              borderRadius: '10px',
-              padding: '10px 14px',
-              marginBottom: '14px',
-              fontSize: '12px',
-              color: '#e2e8f0',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <span style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600 }}>Currently Stored in Database:</span>
-              <button
-                type="button"
-                onClick={handleQuickFillCurrent}
-                style={{
-                  background: '#0284c7',
-                  border: 'none',
-                  borderRadius: '4px',
-                  color: '#ffffff',
-                  fontSize: '10.5px',
-                  padding: '2px 8px',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                }}
-              >
-                Auto-fill Current
-              </button>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <code
-                style={{
-                  background: 'rgba(0,0,0,0.5)',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '15px',
-                  letterSpacing: '2px',
-                  color: '#38bdf8',
-                  fontWeight: 700,
-                }}
-              >
-                {savedPinInDb || getOwnerPin()}
-              </code>
-              <span style={{ color: '#64748b', fontSize: '11px' }}>
-                (Saved in Supabase <code>app_security</code>)
-              </span>
-            </div>
-          </div>
-        )}
 
         {errorMsg && (
           <div
@@ -303,36 +221,16 @@ export function ChangePinModal({ isOpen, onClose, onSuccess, supabase }: Props) 
           style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
           autoComplete="off"
         >
-          {/* Current PIN */}
+          {/* Current PIN - strictly masked */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#cbd5e1' }}>
-                Current PIN / Password
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowPins(!showPins)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#94a3b8',
-                  fontSize: '11px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  cursor: 'pointer',
-                  padding: 0,
-                }}
-              >
-                {showPins ? <EyeOff size={12} /> : <Eye size={12} />}
-                <span>{showPins ? 'Hide' : 'Show'}</span>
-              </button>
-            </div>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>
+              Current PIN / Password
+            </label>
             <input
-              type={showPins ? 'text' : 'password'}
+              type="password"
               value={currentPin}
               onChange={(e) => setCurrentPin(e.target.value)}
-              placeholder="Enter current PIN / password"
+              placeholder="••••••"
               style={{
                 width: '100%',
                 padding: '10px 12px',
@@ -340,26 +238,26 @@ export function ChangePinModal({ isOpen, onClose, onSuccess, supabase }: Props) 
                 background: 'rgba(255, 255, 255, 0.07)',
                 border: '1px solid rgba(255, 255, 255, 0.15)',
                 color: '#ffffff',
-                fontSize: '15px',
-                letterSpacing: showPins ? '1px' : '3px',
+                fontSize: '16px',
+                letterSpacing: '4px',
                 boxSizing: 'border-box',
               }}
-              autoComplete="off"
+              autoComplete="current-password"
               required
               autoFocus
             />
           </div>
 
-          {/* New PIN */}
+          {/* New PIN - strictly masked */}
           <div>
             <label style={{ fontSize: '12px', fontWeight: 700, color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>
-              New PIN / Password (4 - 20 chars)
+              New PIN / Password (4 - 20 characters)
             </label>
             <input
-              type={showPins ? 'text' : 'password'}
+              type="password"
               value={newPin}
               onChange={(e) => setNewPin(e.target.value)}
-              placeholder="Enter new PIN or password"
+              placeholder="••••••"
               style={{
                 width: '100%',
                 padding: '10px 12px',
@@ -367,25 +265,25 @@ export function ChangePinModal({ isOpen, onClose, onSuccess, supabase }: Props) 
                 background: 'rgba(255, 255, 255, 0.07)',
                 border: '1px solid rgba(255, 255, 255, 0.15)',
                 color: '#ffffff',
-                fontSize: '15px',
-                letterSpacing: showPins ? '1px' : '3px',
+                fontSize: '16px',
+                letterSpacing: '4px',
                 boxSizing: 'border-box',
               }}
-              autoComplete="off"
+              autoComplete="new-password"
               required
             />
           </div>
 
-          {/* Confirm New PIN */}
+          {/* Confirm New PIN - strictly masked */}
           <div>
             <label style={{ fontSize: '12px', fontWeight: 700, color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>
               Confirm New PIN / Password
             </label>
             <input
-              type={showPins ? 'text' : 'password'}
+              type="password"
               value={confirmPin}
               onChange={(e) => setConfirmPin(e.target.value)}
-              placeholder="Re-enter new PIN or password"
+              placeholder="••••••"
               style={{
                 width: '100%',
                 padding: '10px 12px',
@@ -393,11 +291,11 @@ export function ChangePinModal({ isOpen, onClose, onSuccess, supabase }: Props) 
                 background: 'rgba(255, 255, 255, 0.07)',
                 border: '1px solid rgba(255, 255, 255, 0.15)',
                 color: '#ffffff',
-                fontSize: '15px',
-                letterSpacing: showPins ? '1px' : '3px',
+                fontSize: '16px',
+                letterSpacing: '4px',
                 boxSizing: 'border-box',
               }}
-              autoComplete="off"
+              autoComplete="new-password"
               required
             />
           </div>

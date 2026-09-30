@@ -195,7 +195,7 @@ export function RolePortalPage({
               padding: 0,
             }}
           >
-            🔑 Change / View Saved PIN
+            🔑 Change Security PIN
           </button>
         </div>
       </footer>
