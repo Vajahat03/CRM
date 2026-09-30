@@ -29,7 +29,7 @@ import { AIAssistantPage } from './AIAssistantPage';
 import { SMSDashboardPage } from './sms/SMSDashboardPage';
 import { SendSMSModal } from './sms/SendSMSModal';
 import { SecureVaultLock, SecureReportGateModal } from './SecureVaultLock';
-import { getStoredAppRole, setStoredAppRole, AppRole } from './securityService';
+import { getStoredAppRole, setStoredAppRole, AppRole, fetchOwnerPinFromDb } from './securityService';
 import { ChangePinModal } from './ChangePinModal';
 
 const seedWorkTypes: WorkType[] = [
@@ -214,6 +214,7 @@ function App() {
     if (!supabase) return;
     const load = async (): Promise<void> => {
       try {
+        void fetchOwnerPinFromDb(supabase);
         const [types, cust, spend, cats, wst, kir] = await Promise.all([
           supabase.from('work_types').select('*').order('name'),
           supabase.from('customer_records').select('*').order('created_at', { ascending: false }),
@@ -839,7 +840,9 @@ function App() {
           setShowRolePortal(false);
           notify('👑 Entered as Owner. All permissions unlocked.');
         }}
+        onOpenChangePin={() => setShowChangePinModal(true)}
         customerCount={customers.length}
+        supabase={supabase}
       />
     );
   }
@@ -962,6 +965,14 @@ function App() {
                 </span>
                 <button className="button primary" style={{ padding: '6px 12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '5px', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)' }} onClick={() => setShowUnlockOwnerModal(true)}>
                   <Unlock size={13} /> <span>Unlock Owner</span>
+                </button>
+                <button
+                  className="button secondary"
+                  style={{ padding: '6px 10px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  onClick={() => setShowChangePinModal(true)}
+                  title="Change Security PIN / Password"
+                >
+                  <KeyRound size={13} /> <span>Change PIN</span>
                 </button>
                 <button
                   className="button secondary"
@@ -1227,8 +1238,9 @@ function App() {
           onClose={() => setShowChangePinModal(false)}
           onSuccess={() => {
             setShowChangePinModal(false);
-            notify('Security PIN updated successfully!');
+            notify('Security PIN / Password updated and synced with database!');
           }}
+          supabase={supabase}
         />
       )}
 

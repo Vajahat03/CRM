@@ -13,6 +13,7 @@ import { CustomerModal } from './CustomerModal';
 import { OwnerAuthModal } from './OwnerAuthModal';
 import { QuickPayModal } from './QuickPayModal';
 import { ConfirmDialog } from './ConfirmDialog';
+import { WorkStatusSelect } from './WorkStatusSelect';
 import { printThermalBill } from './billPrinter';
 
 type StatusFilter = 'ALL' | 'Pending' | 'In Progress' | 'Al Uzer' | 'Delivered' | 'Document Required' | 'Completed';
@@ -758,9 +759,13 @@ export function CRMDashboard({
                       </div>
                     </td>
                     <td>
-                      <span className={`crm-job-status ${row.work_status.toLowerCase().replace(/\s+/g, '-')}`}>
-                        {row.work_status}
-                      </span>
+                      <WorkStatusSelect
+                        currentStatus={row.work_status}
+                        workStatuses={workStatuses}
+                        customerId={row.id}
+                        customerName={row.customer_name}
+                        onStatusChange={(newStatus) => onSaveCustomer({ work_status: newStatus }, row.id)}
+                      />
                     </td>
                     <td>
                       <strong>{formatCurrency(row.total_amount)}</strong>

@@ -6,6 +6,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { CustomerModal } from './CustomerModal';
 import { OwnerAuthModal } from './OwnerAuthModal';
 import { QuickPayModal } from './QuickPayModal';
+import { WorkStatusSelect } from './WorkStatusSelect';
 import { printThermalBill } from './billPrinter';
 
 type Props = {
@@ -347,7 +348,13 @@ export function CustomersPage({
                       </span>
                     </td>
                     <td>
-                      <span className="work-status">{row.work_status}</span>
+                      <WorkStatusSelect
+                        currentStatus={row.work_status}
+                        workStatuses={workStatuses}
+                        customerId={row.id}
+                        customerName={row.customer_name}
+                        onStatusChange={(newStatus) => saveCustomer({ work_status: newStatus }, row.id)}
+                      />
                     </td>
                     <td>{formatDate(row.created_at)}</td>
                     <td>

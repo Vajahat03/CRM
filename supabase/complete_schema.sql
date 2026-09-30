@@ -150,6 +150,14 @@ CREATE TABLE IF NOT EXISTS public.sms_logs (
   created_at timestamptz DEFAULT timezone('utc'::text, now())
 );
 
+-- 10. APP & OWNER SECURITY CREDENTIALS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.app_security (
+  id text PRIMARY KEY DEFAULT 'owner_pin_config',
+  owner_pin text NOT NULL DEFAULT '163692',
+  updated_at timestamptz DEFAULT timezone('utc'::text, now())
+);
+
 -- ============================================================================
 -- INDEXES FOR PERFORMANCE
 -- ============================================================================
@@ -174,6 +182,7 @@ ALTER TABLE public.kirkol ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sms_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sms_queue ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sms_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.app_security ENABLE ROW LEVEL SECURITY;
 
 DO $$
 DECLARE
@@ -181,7 +190,7 @@ DECLARE
 BEGIN
   FOR tbl IN SELECT unnest(ARRAY[
     'work_types', 'customer_records', 'spendings', 'spending_categories', 
-    'work_statuses', 'kirkol', 'sms_settings', 'sms_queue', 'sms_logs'
+    'work_statuses', 'kirkol', 'sms_settings', 'sms_queue', 'sms_logs', 'app_security'
   ])
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS "shared_select_%I" ON public.%I', tbl, tbl);
@@ -229,7 +238,7 @@ INSERT INTO public.work_statuses (name) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================================
--- SMS REMINDER DEFAULT SETTINGS
+-- SMS REMINDER DEFAULT SETTINGS & APP SECURITY
 -- ============================================================================
 INSERT INTO public.sms_settings (
   id, enabled, min_days_overdue, reminder_frequency_days, reminder_time, max_reminders, 
@@ -239,6 +248,10 @@ INSERT INTO public.sms_settings (
   'Dear {customer_name}, your outstanding balance of ₹{balance} for {work_type} has been pending for {days_pending} days. Please clear your pending amount at your earliest convenience. Thank you, {business_name}.',
   'Al Uzer Common Services', 'alz-gateway-sim-sec-key-889', 'Owner SIM Gateway (Android)'
 ) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.app_security (id, owner_pin) VALUES 
+  ('owner_pin_config', '163692') 
+ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
 -- IMPORT YOUR LIVE CUSTOMER WORK & TRANSACTIONS (11 RECORDS)

@@ -1,20 +1,35 @@
 import React, { useState } from 'react';
-import { ShieldCheck, UserCheck, Sparkles, ArrowRight, Lock, KeyRound, CheckCircle2, ChevronRight, BarChart3, Users, Receipt } from 'lucide-react';
+import { ShieldCheck, UserCheck, Sparkles, ArrowRight, Lock, KeyRound, CheckCircle2, ChevronRight, BarChart3, Users, Receipt, Database } from 'lucide-react';
 import './RolePortalPage.css';
 import { SecureVaultLock, SecureReportGateModal } from './SecureVaultLock';
+import { ChangePinModal } from './ChangePinModal';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 interface RolePortalPageProps {
   onSelectEmployee: () => void;
   onSelectOwner: () => void;
+  onOpenChangePin?: () => void;
   customerCount: number;
+  supabase?: SupabaseClient | null;
 }
 
 export function RolePortalPage({
   onSelectEmployee,
   onSelectOwner,
+  onOpenChangePin,
   customerCount,
+  supabase,
 }: RolePortalPageProps) {
   const [showOwnerVaultModal, setShowOwnerVaultModal] = useState(false);
+  const [showChangePin, setShowChangePin] = useState(false);
+
+  const handleOpenPinModal = () => {
+    if (onOpenChangePin) {
+      onOpenChangePin();
+    } else {
+      setShowChangePin(true);
+    }
+  };
 
   return (
     <div className="role-portal-container">
@@ -33,7 +48,7 @@ export function RolePortalPage({
           </div>
         </div>
         <p className="portal-tagline">
-          Select your role to access the workspace. Owner data is protected with 6-digit cryptographic security.
+          Select your role to access the workspace. Owner data is protected with cryptographic database security.
         </p>
       </header>
 
@@ -51,13 +66,13 @@ export function RolePortalPage({
 
           <h2>Employee Portal</h2>
           <p className="card-desc">
-            Quick counter operations. Add new customer jobs, generate bills, and log daily counter collections.
+            Quick counter operations. Add new customer jobs, mark work status done, generate bills, and log daily counter collections.
           </p>
 
           <ul className="card-features-list">
             <li>
               <CheckCircle2 size={16} className="feature-icon check" />
-              <span><strong>Add Customer Records</strong> & work types</span>
+              <span><strong>Add Customer Records</strong> & update work status</span>
             </li>
             <li>
               <CheckCircle2 size={16} className="feature-icon check" />
@@ -65,11 +80,11 @@ export function RolePortalPage({
             </li>
             <li>
               <CheckCircle2 size={16} className="feature-icon check" />
-              <span><strong>Total Billed & Balance</strong> calculation view</span>
+              <span><strong>Mark Payments & Settle Balance</strong> on the fly</span>
             </li>
             <li className="restricted-feature">
               <Lock size={15} className="feature-icon lock" />
-              <span>Financial reports, profits & editing locked</span>
+              <span>Financial reports, profits & record deletion locked</span>
             </li>
           </ul>
 
@@ -95,7 +110,7 @@ export function RolePortalPage({
 
           <h2>Owner & Admin Vault</h2>
           <p className="card-desc">
-            Full administrative authority. View real profit margins, delete/edit records, analytics, and PIN controls.
+            Full administrative authority. View real profit margins, delete/edit records, analytics, and change database password/PIN.
           </p>
 
           <ul className="card-features-list">
@@ -111,20 +126,54 @@ export function RolePortalPage({
               <CheckCircle2 size={16} className="feature-icon emerald" />
               <span><strong>Edit & Delete Records</strong> with 1-click controls</span>
             </li>
-            <li>
-              <CheckCircle2 size={16} className="feature-icon emerald" />
-              <span><strong>Change Security PIN</strong> (Default: <code>163692</code>)</span>
+            <li
+              style={{ cursor: 'pointer' }}
+              onClick={handleOpenPinModal}
+              title="Click to change your Owner Security PIN / Password"
+            >
+              <KeyRound size={16} className="feature-icon emerald" />
+              <span>
+                <strong style={{ color: '#00ff88', textDecoration: 'underline' }}>
+                  Change Security PIN / Password
+                </strong>{' '}
+                (Saved in Database)
+              </span>
             </li>
           </ul>
 
-          <button
-            className="portal-action-btn owner-btn"
-            onClick={() => setShowOwnerVaultModal(true)}
-          >
-            <KeyRound size={18} />
-            <span>Unlock Owner Portal</span>
-            <ChevronRight size={18} />
-          </button>
+          <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+            <button
+              className="portal-action-btn owner-btn"
+              onClick={() => setShowOwnerVaultModal(true)}
+              style={{ flex: 1 }}
+            >
+              <KeyRound size={18} />
+              <span>Unlock Owner Portal</span>
+              <ChevronRight size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenPinModal}
+              className="portal-action-btn"
+              style={{
+                background: 'rgba(0, 255, 136, 0.12)',
+                border: '1px solid rgba(0, 255, 136, 0.4)',
+                color: '#00ff88',
+                padding: '0 14px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+              }}
+              title="Change Password / PIN stored in database"
+            >
+              <KeyRound size={15} />
+              <span>Change PIN</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -132,9 +181,22 @@ export function RolePortalPage({
         <div className="footer-stats">
           <span>💼 Active Records: <strong>{customerCount} Customers</strong></span>
           <span>•</span>
-          <span>🛡️ 256-bit Vault Security</span>
+          <span>🛡️ Database Synced Security</span>
           <span>•</span>
-          <span>🔒 Default PIN: <code>163692</code></span>
+          <button
+            onClick={handleOpenPinModal}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#38bdf8',
+              cursor: 'pointer',
+              fontSize: '12px',
+              textDecoration: 'underline',
+              padding: 0,
+            }}
+          >
+            🔑 Change / View Saved PIN
+          </button>
         </div>
       </footer>
 
@@ -147,6 +209,17 @@ export function RolePortalPage({
             setShowOwnerVaultModal(false);
             onSelectOwner();
           }}
+        />
+      )}
+
+      {showChangePin && (
+        <ChangePinModal
+          isOpen={showChangePin}
+          onClose={() => setShowChangePin(false)}
+          onSuccess={() => {
+            setShowChangePin(false);
+          }}
+          supabase={supabase}
         />
       )}
     </div>
