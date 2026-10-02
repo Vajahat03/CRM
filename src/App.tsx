@@ -254,11 +254,15 @@ function App() {
           localCust.forEach((l) => {
             if (mergedMap.has(l.id)) {
               const existing = mergedMap.get(l.id)!;
-              mergedMap.set(l.id, { ...existing, payment_mode: l.payment_mode || existing.payment_mode || 'Cash' });
+              mergedMap.set(l.id, {
+                ...existing,
+                items: l.items || existing.items,
+                payment_mode: l.payment_mode || existing.payment_mode || 'Cash',
+              });
             } else {
               mergedMap.set(l.id, l);
               if (supabase) {
-                const { payment_mode: _, ...supabaseRecord } = l;
+                const { items: _, ...supabaseRecord } = l;
                 void supabase.from('customer_records').upsert(supabaseRecord);
               }
             }
@@ -368,6 +372,24 @@ function App() {
 
   const notify = (message: string): void => { setToast(message); window.setTimeout(() => setToast(''), 2800); };
 
+  function cleanCustomerForSupabase(data: Partial<CustomerRecord>) {
+    const payload: Record<string, any> = {};
+    if (data.id !== undefined) payload.id = data.id;
+    if (data.customer_name !== undefined) payload.customer_name = data.customer_name;
+    if (data.mobile !== undefined) payload.mobile = data.mobile;
+    if (data.work_type !== undefined) payload.work_type = data.work_type;
+    if (data.total_amount !== undefined) payload.total_amount = Number(data.total_amount) || 0;
+    if (data.charges !== undefined) payload.charges = Number(data.charges) || 0;
+    if (data.paid !== undefined) payload.paid = Number(data.paid) || 0;
+    if (data.expense !== undefined) payload.expense = Number(data.expense) || 0;
+    if (data.income !== undefined) payload.income = Number(data.income) || 0;
+    if (data.payment_status !== undefined) payload.payment_status = data.payment_status;
+    if (data.work_status !== undefined) payload.work_status = data.work_status;
+    if (data.payment_mode !== undefined) payload.payment_mode = data.payment_mode;
+    if (data.created_at !== undefined) payload.created_at = data.created_at;
+    return payload;
+  }
+
   const saveCustomer = async (data: Partial<CustomerRecord>, editingId?: string): Promise<void> => {
     let savedRecord: CustomerRecord;
     let nextCustomers: CustomerRecord[] = [];
@@ -381,7 +403,7 @@ function App() {
 
       if (supabase) {
         try {
-          const { payment_mode: _, ...supabaseData } = data;
+          const supabaseData = cleanCustomerForSupabase(data);
           const response = await supabase.from('customer_records').update(supabaseData).eq('id', editingId).select().maybeSingle();
           if (response.data) {
             savedRecord = { ...savedRecord, ...(response.data as Partial<CustomerRecord>) };
@@ -402,23 +424,24 @@ function App() {
       const record: CustomerRecord = {
         id: makeId(),
         customer_name: data.customer_name!,
-        mobile: data.mobile!,
+        mobile: data.mobile || '',
         work_type: data.work_type!,
-        total_amount: data.total_amount!,
-        charges: data.charges ?? 0,
-        paid: data.paid!,
-        expense: data.expense!,
-        income: data.income!,
-        payment_status: data.payment_status!,
-        work_status: data.work_status!,
+        total_amount: Number(data.total_amount) || 0,
+        charges: Number(data.charges) || 0,
+        paid: Number(data.paid) || 0,
+        expense: Number(data.expense) || 0,
+        income: Number(data.income) || 0,
+        payment_status: data.payment_status || 'PENDING',
+        work_status: data.work_status || 'Pending',
         payment_mode: data.payment_mode || 'Cash',
+        items: data.items,
         created_at: data.created_at || new Date().toISOString(),
       };
       savedRecord = record;
 
       if (supabase) {
         try {
-          const { payment_mode: _, ...supabaseRecord } = record;
+          const supabaseRecord = cleanCustomerForSupabase(record);
           const response = await supabase.from('customer_records').insert(supabaseRecord).select().maybeSingle();
           if (response.data) {
             savedRecord = { ...record, ...(response.data as Partial<CustomerRecord>) };

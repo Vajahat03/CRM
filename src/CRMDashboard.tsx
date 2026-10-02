@@ -16,7 +16,26 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { WorkStatusSelect } from './WorkStatusSelect';
 import { printThermalBill } from './billPrinter';
 
-type StatusFilter = 'ALL' | 'Pending' | 'In Progress' | 'Al Uzer' | 'Delivered' | 'Document Required' | 'Completed';
+type StatusFilter = 'ALL' | 'Pending' | 'Payment Pending' | 'In Progress' | 'Al Uzer' | 'Delivered' | 'Document Required' | 'Completed';
+
+function checkIsAlUzer(row: CustomerRecord): boolean {
+  const norm = (str?: string) => (str || '').toLowerCase().replace(/[\s\-_.]/g, '');
+  const name = norm(row.customer_name);
+  const work = norm(row.work_type);
+  const status = norm(row.work_status);
+
+  if (name.includes('aluzer') || work.includes('aluzer') || status.includes('aluzer')) {
+    return true;
+  }
+  if (row.items && row.items.some((it) => {
+    const itWork = norm(it.work_type);
+    const itStatus = norm(it.work_status);
+    return itWork.includes('aluzer') || itStatus.includes('aluzer');
+  })) {
+    return true;
+  }
+  return false;
+}
 
 type Props = {
   customers: CustomerRecord[];
@@ -175,12 +194,7 @@ export function CRMDashboard({
   }, [monthFilteredCustomers]);
 
   const alUzerCount = useMemo(() => {
-    return monthFilteredCustomers.filter(
-      (row) =>
-        row.customer_name.toLowerCase().includes('al uzer') ||
-        row.work_type.toLowerCase().includes('al uzer') ||
-        row.work_status === 'Al Uzer'
-    ).length;
+    return monthFilteredCustomers.filter(checkIsAlUzer).length;
   }, [monthFilteredCustomers]);
 
   // Table-filtered customer records
@@ -188,11 +202,7 @@ export function CRMDashboard({
     return monthFilteredCustomers.filter((row) => {
       if (statusFilter !== 'ALL') {
         if (statusFilter === 'Al Uzer') {
-          const isAlUzer =
-            row.customer_name.toLowerCase().includes('al uzer') ||
-            row.work_type.toLowerCase().includes('al uzer') ||
-            row.work_status === 'Al Uzer';
-          if (!isAlUzer) return false;
+          if (!checkIsAlUzer(row)) return false;
         } else if (row.work_status !== statusFilter) {
           return false;
         }
@@ -215,6 +225,7 @@ export function CRMDashboard({
     const counts: Record<string, number> = {
       ALL: monthFilteredCustomers.length,
       Pending: 0,
+      'Payment Pending': 0,
       'In Progress': 0,
       'Al Uzer': alUzerCount,
       Delivered: 0,
@@ -222,8 +233,9 @@ export function CRMDashboard({
       Completed: 0,
     };
     monthFilteredCustomers.forEach((row) => {
-      if (counts[row.work_status] !== undefined && row.work_status !== 'Al Uzer') {
-        counts[row.work_status]++;
+      const st = row.work_status || 'Pending';
+      if (counts[st] !== undefined && st !== 'Al Uzer') {
+        counts[st]++;
       }
     });
     return counts;
@@ -313,6 +325,7 @@ export function CRMDashboard({
   const statusButtons: { key: StatusFilter; label: string }[] = [
     { key: 'ALL', label: 'ALL' },
     { key: 'Pending', label: 'PENDING' },
+    { key: 'Payment Pending', label: 'PAYMENT PENDING' },
     { key: 'In Progress', label: 'IN PROGRESS' },
     { key: 'Al Uzer', label: 'AL UZER' },
     { key: 'Delivered', label: 'DELIVERED' },

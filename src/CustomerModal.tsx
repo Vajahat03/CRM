@@ -539,9 +539,8 @@ export function CustomerModal({
               max={calculatedTotal || undefined}
               value={paid}
               onChange={(event) => setPaid(event.target.value)}
-              placeholder="₹ 0"
+              placeholder="₹ 0 (Pending)"
               style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: 700 }}
-              required
             />
           </div>
           <div>

@@ -96,16 +96,22 @@ export function verifyOwnerPin(inputPin: string): boolean {
 
 export function getStoredAppRole(): AppRole {
   try {
-    const role = localStorage.getItem(LOCAL_STORAGE_KEYS.APP_ROLE);
+    const role = sessionStorage.getItem(LOCAL_STORAGE_KEYS.APP_ROLE);
     if (role === 'owner' || role === 'employee') {
       return role;
     }
   } catch {}
-  return 'employee'; // Default to Employee mode for privacy safety
+  // Default to Employee mode for privacy safety whenever web starts
+  return 'employee';
 }
 
 export function setStoredAppRole(role: AppRole): void {
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.APP_ROLE, role);
+    sessionStorage.setItem(LOCAL_STORAGE_KEYS.APP_ROLE, role);
+    if (role === 'employee') {
+      try {
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.APP_ROLE);
+      } catch {}
+    }
   } catch {}
 }
